@@ -1,4 +1,8 @@
-# Adaptador de wallpapers
+# wallratio
+
+Versión 0.2
+
+Licencia: GNU General Public License, versión 3. Consulta [LICENSE](LICENSE).
 
 Herramienta para adaptar imágenes a una relación de aspecto elegida sin ampliar,
 reducir ni recortar los píxeles originales. El lienzo se expande solo en el eje
@@ -31,18 +35,19 @@ Instala los requisitos de compilación y genera el ejecutable desde PowerShell:
 
 ```powershell
 python -m pip install -r requirements-build.txt
-python -m PyInstaller --clean --noconfirm --onefile --name wallpaper_tool --specpath build .\wallpaper_tool.py
+python -m PyInstaller --clean --noconfirm --onefile --name wallratio --icon ..\assets\wallratio.ico --add-data "..\assets\wallratio.ico;assets" --specpath build .\wallratio.py
 ```
 
-El archivo resultante estará en `.\dist\wallpaper_tool.exe`. Incluye Python,
+El archivo resultante estará en `.\dist\wallratio.exe`. Incluye Python,
 Pillow y Tkinter; no requiere una instalación de Python en el equipo de destino.
-El ejecutable conserva la consola para que también funcionen la CLI y `--help`;
-al iniciarlo sin argumentos abre la interfaz gráfica.
+El icono se aplica tanto al ejecutable como a la ventana gráfica. El ejecutable
+conserva la consola para que también funcionen la CLI y `--help`; al iniciarlo
+sin argumentos abre la interfaz gráfica.
 
 ## Interfaz gráfica
 
 ```powershell
-python .\wallpaper_tool.py
+python .\wallratio.py
 ```
 
 Elige la carpeta de entrada, la carpeta de salida, la proporción y el formato.
@@ -51,10 +56,10 @@ También se puede escribir una proporción personalizada, por ejemplo `5:4`.
 ## Línea de comandos
 
 ```powershell
-python .\wallpaper_tool.py .\wallpapersEjemplo --ratio 9:16
-python .\wallpaper_tool.py .\wallpapersEjemplo --ratio 16:9 --format original
-python .\wallpaper_tool.py .\wallpapersEjemplo --ratio 21:9 --format webp --output .\salida_21_9
-python .\wallpaper_tool.py --help
+python .\wallratio.py .\wallpapersEjemplo --ratio 9:16
+python .\wallratio.py .\wallpapersEjemplo --ratio 16:9 --format original
+python .\wallratio.py .\wallpapersEjemplo --ratio 21:9 --format webp --output .\salida_21_9
+python .\wallratio.py --help
 ```
 
 Formatos disponibles: `png` (predeterminado), `jpeg`, `webp` y `original`.

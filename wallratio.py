@@ -1,4 +1,5 @@
-"""Prepare wallpapers for a chosen aspect ratio without resizing source pixels."""
+# SPDX-License-Identifier: GPL-3.0-only
+"""Adapta fondos de pantalla a una proporción sin cambiar el tamaño de sus píxeles."""
 
 from __future__ import annotations
 
@@ -32,13 +33,14 @@ class ProcessResult:
 
 class Ratio(float):
     def __new__(cls, value: float, label: str) -> "Ratio":
+        """Crea una proporción numérica y conserva la etiqueta usada para representarla."""
         instance = super().__new__(cls, value)
         instance.label = label
         return instance
 
 
 def parse_ratio(value: str) -> Ratio:
-    """Parse a positive decimal ratio or a width:height pair."""
+    """Interpreta una proporción decimal positiva o un par ancho:alto."""
     try:
         if ":" in value:
             width, height = value.split(":", maxsplit=1)
@@ -57,7 +59,7 @@ def parse_ratio(value: str) -> Ratio:
 
 
 def canvas_size(width: int, height: int, ratio: float) -> tuple[int, int]:
-    """Return the smallest canvas with the requested ratio that contains the image."""
+    """Devuelve el lienzo más pequeño que contiene la imagen y cumple la proporción."""
     if width / height < ratio:
         return math.ceil(height * ratio), height
     return width, math.ceil(width / ratio)
@@ -66,7 +68,7 @@ def canvas_size(width: int, height: int, ratio: float) -> tuple[int, int]:
 def _solid_edge_profile(
     image: Image.Image, horizontal_padding: bool
 ) -> tuple[tuple[int, int, int], ...] | None:
-    """Find matching opposite edge colors, including smooth color gradients."""
+    """Busca colores coincidentes en bordes opuestos, incluidos gradientes suaves."""
     rgb = image.convert("RGB")
     width, height = rgb.size
     if horizontal_padding:
@@ -89,7 +91,7 @@ def _solid_edge_profile(
 
 
 def _has_black_background(image: Image.Image, horizontal_padding: bool) -> bool:
-    """Detect a mostly black or neutral-charcoal background, not dark saturated colors."""
+    """Detecta un fondo mayormente negro o gris carbón neutro, no colores saturados oscuros."""
     rgb = image.convert("RGB")
     channel_max = ImageChops.lighter(
         ImageChops.lighter(rgb.getchannel("R"), rgb.getchannel("G")),
@@ -111,6 +113,7 @@ def _has_black_background(image: Image.Image, horizontal_padding: bool) -> bool:
         edge_boxes = ((0, 0, width, band), (0, height - band, width, height))
 
     def dark_fraction(box: tuple[int, int, int, int]) -> float:
+        """Calcula la fracción de píxeles oscuros en la región indicada."""
         histogram = near_black.crop(box).histogram()
         return histogram[255] / sum(histogram)
 
@@ -130,7 +133,7 @@ def _has_black_background(image: Image.Image, horizontal_padding: bool) -> bool:
 def _black_background(
     image: Image.Image, size: tuple[int, int], source_position: tuple[int, int]
 ) -> Image.Image:
-    """Extend dark artwork with black and softly blend only non-black edge details."""
+    """Amplía las zonas oscuras con negro y difumina solo los detalles de borde no negros."""
     background = Image.new("RGB", size, (0, 0, 0))
     source = image.convert("RGB")
     source_x, source_y = source_position
@@ -168,6 +171,7 @@ def _black_background(
 def _feather_mask(
     length: int, feather: int, reverse: bool, horizontal: bool, span: int
 ) -> Image.Image:
+    """Genera una máscara de transición gradual para difuminar el borde del relleno."""
     values = []
     for position in range(length):
         distance = length - 1 - position if reverse else position
@@ -184,7 +188,7 @@ def _feather_mask(
 def _edge_matte_background(
     image: Image.Image, size: tuple[int, int], source_position: tuple[int, int]
 ) -> Image.Image:
-    """Use a quiet edge-derived matte with a short, softly blurred transition."""
+    """Usa un color mate discreto tomado del borde y una transición breve y suavemente difuminada."""
     image = image.convert("RGB")
     source_x, source_y = source_position
     width, height = image.size
@@ -201,6 +205,7 @@ def _edge_matte_background(
         horizontal: bool,
         reverse: bool,
     ) -> None:
+        """Rellena un lado del lienzo y difumina la unión con la imagen."""
         if not padding:
             return
         edge_sample = image.crop(sample_box)
@@ -286,6 +291,7 @@ def _edge_matte_background(
 
 
 def _prepare_image(image: Image.Image, ratio: float) -> Image.Image:
+    """Adapta la imagen a la proporción solicitada sin redimensionar sus píxeles."""
     image = ImageOps.exif_transpose(image)
     image.load()
     width, height = image.size
@@ -323,6 +329,7 @@ def _prepare_image(image: Image.Image, ratio: float) -> Image.Image:
 
 
 def _output_path(source: Path, source_dir: Path, output_dir: Path, output_format: str) -> Path:
+    """Calcula la ruta de salida conservando la estructura relativa de la imagen."""
     relative = source.relative_to(source_dir)
     if output_format == "original":
         return output_dir / relative
@@ -331,12 +338,14 @@ def _output_path(source: Path, source_dir: Path, output_dir: Path, output_format
 
 
 def _path_key(path: Path) -> str:
+    """Devuelve una clave normalizada para comparar rutas sin distinguir mayúsculas."""
     return path.as_posix().casefold()
 
 
 def _plan_output_paths(
     files: list[Path], source_dir: Path, output_dir: Path, output_format: str
 ) -> dict[Path, Path]:
+    """Planifica rutas de salida únicas y resuelve posibles colisiones de nombres."""
     base_paths = {source: _output_path(source, source_dir, output_dir, output_format) for source in files}
     collisions: dict[str, list[Path]] = defaultdict(list)
     for source, target in base_paths.items():
@@ -365,6 +374,7 @@ def default_output_dir(
     ratio: float,
     output_format: str = "png",
 ) -> Path:
+    """Genera una ruta de salida etiquetada y evita colisiones con carpetas existentes."""
     ratio_label = getattr(ratio, "label", f"{ratio:.4g}".replace(".", "_"))
     format_label = "ORIGINAL" if output_format == "original" else output_format.upper()
     base = source_dir.parent / f"{source_dir.name}_{ratio_label}_{format_label}"
@@ -383,6 +393,7 @@ def process_folder(
     output_format: str = "png",
     progress: Callable[[int, int, str], None] | None = None,
 ) -> ProcessResult:
+    """Procesa las imágenes de una carpeta con la proporción y el formato indicados."""
     source_dir = source_dir.expanduser().resolve()
     output_dir = output_dir.expanduser().resolve()
     if not source_dir.is_dir():
@@ -446,6 +457,7 @@ def process_folder(
 
 
 def _run_cli() -> int:
+    """Configura y ejecuta la interfaz de línea de comandos."""
     parser = argparse.ArgumentParser(
         description="Adapta wallpapers a una proporción sin ampliar, reducir ni recortar los píxeles originales."
     )
@@ -488,11 +500,13 @@ def _run_cli() -> int:
 
 
 def launch_gui() -> int:
+    """Inicia la interfaz gráfica para seleccionar y procesar fondos de pantalla."""
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
 
     root = tk.Tk()
-    root.title("Adaptador de wallpapers")
+    root.title("wallratio - Adaptador de wallpapers")
+    root.iconbitmap(str(Path(__file__).resolve().parent / "assets" / "wallratio.ico"))
     root.resizable(False, False)
 
     input_var = tk.StringVar()
@@ -506,6 +520,7 @@ def launch_gui() -> int:
     frame.columnconfigure(1, weight=1)
 
     def choose_input() -> None:
+        """Selecciona la carpeta de imágenes y actualiza la ruta de salida predeterminada."""
         selected = filedialog.askdirectory(title="Selecciona la carpeta de imágenes")
         if selected:
             input_var.set(selected)
@@ -516,6 +531,7 @@ def launch_gui() -> int:
                 pass
 
     def choose_output() -> None:
+        """Selecciona la carpeta contenedora y calcula el nombre de salida predeterminado."""
         selected = filedialog.askdirectory(title="Selecciona la carpeta contenedora de salida")
         if selected:
             parent = Path(selected)
@@ -525,7 +541,8 @@ def launch_gui() -> int:
             except argparse.ArgumentTypeError:
                 output_var.set(str(parent / "wallpapers_procesados"))
 
-    def refresh_output_name(*_args: object) -> None:
+    def refresh_output_name(*_: object) -> None:
+        """Actualiza el nombre de salida cuando cambia la proporción o el formato."""
         if input_var.get():
             try:
                 ratio = parse_ratio(ratio_var.get())
@@ -576,6 +593,7 @@ def launch_gui() -> int:
     events: queue.Queue[tuple[str, object]] = queue.Queue()
 
     def start_processing() -> None:
+        """Valida las selecciones e inicia el procesamiento de las imágenes."""
         if not input_var.get() or not output_var.get():
             messagebox.showerror("Faltan datos", "Selecciona las carpetas de entrada y salida.")
             return
@@ -588,6 +606,7 @@ def launch_gui() -> int:
         status_var.set("Preparando imágenes...")
 
         def worker() -> None:
+            """Procesa las imágenes en segundo plano y comunica el resultado a la interfaz."""
             try:
                 result = process_folder(
                     Path(input_var.get()),
@@ -603,6 +622,7 @@ def launch_gui() -> int:
         threading.Thread(target=worker, daemon=True).start()
 
     def poll_events() -> None:
+        """Actualiza el progreso y muestra los resultados del procesamiento."""
         try:
             while True:
                 kind, payload = events.get_nowait()

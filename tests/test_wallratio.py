@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 import argparse
 import tempfile
 import unittest
@@ -5,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from wallpaper_tool import (
+from wallratio import (
     _prepare_image,
     canvas_size,
     default_output_dir,
