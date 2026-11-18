@@ -25,6 +25,20 @@ python -m pip install -r requirements.txt
 Si PowerShell no permite activar el entorno, puedes ejecutar los comandos con
 `.\.venv\Scripts\python.exe` sin activarlo.
 
+## Crear un ejecutable único (.exe)
+
+Instala los requisitos de compilación y genera el ejecutable desde PowerShell:
+
+```powershell
+python -m pip install -r requirements-build.txt
+python -m PyInstaller --clean --noconfirm --onefile --name wallpaper_tool --specpath build .\wallpaper_tool.py
+```
+
+El archivo resultante estará en `.\dist\wallpaper_tool.exe`. Incluye Python,
+Pillow y Tkinter; no requiere una instalación de Python en el equipo de destino.
+El ejecutable conserva la consola para que también funcionen la CLI y `--help`;
+al iniciarlo sin argumentos abre la interfaz gráfica.
+
 ## Interfaz gráfica
 
 ```powershell
@@ -45,16 +59,24 @@ python .\wallpaper_tool.py --help
 
 Formatos disponibles: `png` (predeterminado), `jpeg`, `webp` y `original`.
 Al convertir, se conserva el nombre base y se usa la extensión correspondiente.
+Si dos imágenes con el mismo nombre base colisionan al convertir, se añade al
+nombre el formato de origen (por ejemplo, `wallpaper_jpg.png` y
+`wallpaper_png.png`).
 Si se indica `--output`, esa carpeta debe ser nueva; no se sobrescribe ninguna
 salida existente. Si no se indica, se crea una carpeta nueva junto a la entrada.
 
 ## Tratamiento de imágenes
 
 - Se conservan todos los píxeles originales; las imágenes no se escalan ni se recortan.
-- Si el borde que se necesita extender es de color casi uniforme, se prolonga
-  ese color para que el dibujo y su fondo liso se integren sin una costura visible.
-- En imágenes con bordes complejos se genera un fondo suavizado a partir de la
-  imagen y se superpone encima la imagen original intacta.
+- Si los bordes opuestos que se necesitan extender coinciden en color, se
+  prolonga su perfil completo. Así también se conservan fondos lisos con un
+  gradiente suave, como `49375.jpg`, sin difuminarlos.
+- Si la imagen tiene un fondo predominantemente negro, se amplía con negro; los
+  detalles no negros que tocan el borde se funden en una franja muy estrecha.
+- En imágenes con bordes complejos se usa un color mate tomado del borde y se
+  difumina solo una franja estrecha junto a la imagen. Se evita extender una
+  versión ampliada y borrosa de toda la imagen, que podía crear bandas anchas.
+  La imagen original se superpone intacta.
 - Las imágenes con transparencia conservan el canal alfa en PNG; JPEG no admite
   transparencia y la compone sobre blanco.
 - Se procesa de forma recursiva y se conserva la estructura de subcarpetas.
